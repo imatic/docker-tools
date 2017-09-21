@@ -8,8 +8,8 @@ set -eu
 # name of the result image
 NAME=${NAME:-'test-app'}
 # registry to push result image into
-REGISTRY=${REGISTRY:-'localhost:5000'}
-REGISTRY_PROTOCOL=${REGISTRY_PROTOCOL:-'http'}
+REGISTRY=${REGISTRY:-'registry.test:5000'}
+REGISTRY_PROTOCOL=${REGISTRY_PROTOCOL:-'https'}
 # user to authenticate agains registry
 REGISTRY_USER=${REGISTRY_USER:-'admin'}
 REGISTRY_PW=${REGISTRY_PW:-'badmin'}
@@ -51,7 +51,7 @@ function registry_request {
     done
 
     local token=$(curl --get --silent --user "${REGISTRY_USER}:${REGISTRY_PW}" "${request_query_strings[@]}" "${auth_url}" | jq --raw-output '.token')
-    curl_options+=('--header' "Authorization: Bearer ${token}" "${requested_url}")
+    curl_options+=('--silent' '--header' "Authorization: Bearer ${token}" "${requested_url}")
     curl "${curl_options[@]}"
 }
 
@@ -76,7 +76,7 @@ if [[ ${#tags[@]} -eq 0 ]]; then
 fi
 
 # Removes tags which already exists in registry
-if registry_request "${REGISTRY_PROTOCOL}://${REGISTRY}/v2/${NAME}/tags/list" true > /dev/null 2>&1; then
+if registry_request "${REGISTRY_PROTOCOL}://${REGISTRY}/v2/${NAME}/tags/list" true; then
     condition=''
     tags_json_string='['
     for tag in "${tags[@]}"; do
@@ -97,8 +97,6 @@ if registry_request "${REGISTRY_PROTOCOL}://${REGISTRY}/v2/${NAME}/tags/list" tr
 fi
 
 printf "Found tags: ${tags[*]}. Building image...\n"
-
-cp .env.docker .env
 
 tag_args=()
 for tag in "${tags[@]}"; do

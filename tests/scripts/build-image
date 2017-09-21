@@ -1,0 +1,90 @@
+#!/usr/bin/env bash
+
+repo_root="$(readlink -f "$(dirname "${0}")/../..")"
+test_project='/tmp/test-project'
+
+PATH="${repo_root}/bin:${PATH}"
+
+function oneTimeSetUp() {
+    mkdir -p "${test_project}"
+    cd "${test_project}"
+    git config --global user.email "you@example.com"
+    git config --global user.name "Your Name"
+    git init
+}
+
+function oneTimeTearDown() {
+    rm -rf "${test_project}"
+}
+
+function testCurrentCommitWithoutTags() {
+    cat > run <<EOF
+#!/usr/bin/env bash
+
+echo "hello world"
+EOF
+
+    cat > Dockerfile <<EOF
+FROM ubuntu:16.04
+
+COPY . /root/app
+
+CMD ["/bin/bash", "/root/app/run"]
+
+EOF
+
+    git add .
+    git commit -m "Initial commit"
+
+    NAME='test-app' build-image 2>&1 | tee /tmp/out.txt
+    out="$(tail --lines 1 /tmp/out.txt)"
+
+    assertEquals "No tags found. Canceling image build..." "${out}"
+}
+
+function testCurrentCommitWithNewTag() {
+    git tag 1
+
+    NAME='test-app' build-image 2>&1 | tee /tmp/out.txt
+    out="$(head --lines 1 /tmp/out.txt)"
+
+    assertEquals "Found tags: 1. Building image..." "${out}"
+}
+
+function testCurrentCommitWithAlreadyBuiltTag() {
+    NAME='test-app' build-image 2>&1 | tee /tmp/out.txt
+    out="$(tail --lines 1 /tmp/out.txt)"
+
+    assertEquals "All tags already exists. Cancelling image build..." "${out}"
+}
+
+function testCurrentCommitWithAlreadyBuiltTagAndTwoNewTags() {
+    # adding tags to existing tag on current commit: 1
+    git tag 2
+    git tag 3
+
+    NAME='test-app' build-image 2>&1 | tee /tmp/out.txt
+    out="$(sed --quiet '2p' /tmp/out.txt)"
+
+    assertEquals "Found tags: 2 3. Building image..." "${out}"
+}
+
+function testCurrentCommitWithBuildMessage() {
+    cat >> run <<EOF
+# end of file
+EOF
+
+    git add run
+    git commit -m "Add comment (build image)"
+
+    commit=$(git log --format=%H)
+    expected_tag=(${commit:0:7})
+
+    NAME='test-app' build-image 2>&1 | tee /tmp/out.txt
+    out="$(sed --quiet '3p' /tmp/out.txt)"
+
+    assertEquals "Found tags: ${expected_tag}. Building image..." "${out}"
+}
+
+. shunit2
+

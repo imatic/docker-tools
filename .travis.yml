@@ -1,0 +1,13 @@
+sudo: required
+
+services:
+    - docker
+
+before_script:
+    - sudo make update-hosts
+    - sudo make install-ca
+    - sudo service docker restart
+
+script:
+    - make test
+
