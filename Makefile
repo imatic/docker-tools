@@ -13,10 +13,15 @@ CA := /usr/local/share/ca-certificates/imatic__docker-tools__registry.crt /usr/l
 UPDATE_CA_COMMAND := update-ca-certificates
 endif
 
-%.crt:
+CA_DEPS := $(foreach target,"${CA}",tests/fixtures/docker_registry/config/$(subst imatic__docker-tools__,,$(notdir $(basename "${target}")))/ssl/ca.pem)
+
+
+$(CA_DEPS): ;
+
+%.crt: $(CA_DEPS)
 	cp "tests/fixtures/docker_registry/config/$(subst imatic__docker-tools__,,$(notdir $(basename $@)))/ssl/ca.pem" "${@}"
 
-%.pem:
+%.pem: $(CA_DEPS)
 	cp "tests/fixtures/docker_registry/config/$(subst imatic__docker-tools__,,$(notdir $(basename $@)))/ssl/ca.pem" "${@}"
 
 .PHONY: test
