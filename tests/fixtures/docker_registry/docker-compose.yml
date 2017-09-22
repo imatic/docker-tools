@@ -6,15 +6,16 @@ services:
             - '5000:5000'
         volumes:
             - ./config/registry/config.yml:/etc/docker/registry/config.yml:ro
-            - ./config:/config
+            - ./config:/config:ro
         environment:
             - REGISTRY_HTTP_TLS_CERTIFICATE=/config/registry/ssl/registry.test.pem
             - REGISTRY_HTTP_TLS_KEY=/config/registry/ssl/registry.test.key
     registry_auth:
         image: cesanta/docker_auth:1.3
+        command:
+            - /config/auth/auth_config.yml
         ports:
             - '5001:5001'
         volumes:
-            - ./config:/config
-            - ./config/auth/auth_config.yml:/config/auth_config.yml:ro
+            - ./config:/config:ro
 
