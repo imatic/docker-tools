@@ -3,3 +3,7 @@
 
 # docker-tools
 
+## scripts
+
+- [build-image](doc/build-image.md) - builds docker images from git repo
+
