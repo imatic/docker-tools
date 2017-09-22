@@ -17,6 +17,16 @@ REGISTRY_PW=${REGISTRY_PW:-'badmin'}
 tags=()
 original_ifs="${IFS}"
 
+tmp_file=/tmp/imatic__docker-tools__errors
+
+# Exits in case $tmp_file is not empty (contains errors)
+function show_error_and_exit {
+    if [[ -s "${tmp_file}" ]]; then
+        cat "${tmp_file}" >&2
+        exit 1
+    fi
+}
+
 # Makes authenticated GET request to registry
 #
 # args:
@@ -29,7 +39,8 @@ function registry_request {
     if [[ ${2:-false} == true ]]; then
         curl_options+=('--fail')
     fi
-    local auth_params_string=$(curl --silent --include "${requested_url}" | grep --perl-regexp --only-matching --ignore-case '(?<=Www-Authenticate: Bearer )[^\r\n]*')
+    local auth_params_string=$(curl --silent --show-error --include "${requested_url}" 2> "${tmp_file}" | grep --perl-regexp --only-matching --ignore-case '(?<=Www-Authenticate: Bearer )[^\r\n]*')
+    show_error_and_exit
     local IFS=','
     local auth_params_strings=(${auth_params_string})
     local IFS="${original_ifs}"
@@ -50,9 +61,16 @@ function registry_request {
         esac
     done
 
-    local token=$(curl --get --silent --user "${REGISTRY_USER}:${REGISTRY_PW}" "${request_query_strings[@]}" "${auth_url}" | jq --raw-output '.token')
-    curl_options+=('--silent' '--header' "Authorization: Bearer ${token}" "${requested_url}")
-    curl "${curl_options[@]}"
+    local token=$(curl --get --silent --show-error --user "${REGISTRY_USER}:${REGISTRY_PW}" "${request_query_strings[@]}" "${auth_url}" 2> "${tmp_file}" | jq --raw-output '.token')
+    show_error_and_exit
+    curl_options+=('--silent' '--show-error' '--header' "Authorization: Bearer ${token}" "${requested_url}")
+    curl "${curl_options[@]}" 2> "${tmp_file}"
+    return_code="$?"
+    if [[ "${return_code}" -ne 22 ]]; then
+        show_error_and_exit
+    fi
+
+    return "${return_code}"
 }
 
 function append_git_tags {
