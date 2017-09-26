@@ -1,7 +1,14 @@
 sudo: required
 
+env:
+    - secure: "KkA/kIlX0hMIWVPR1b2hCMyXbdZMD9wSqpauB7ky6kf9KgWPdKbg8C3xt5+pkmgszGBgIsHl4Qu4IL9txyU2UzLGgQpLUj0evLTMb97ro60kVOSPkRm1DKQaJA8RkVFb+EVCqNWE1wkeZ5XJoqSAZ+1V69gNSktB1ZruswUZMWigs4gicMfThs7NGbg69dGO2i3HJUqgJXZFqL99K6hIrqKRhOx5Hjzu0E7Wm59TN4tDvI5UfZgidvUk/TcHmO9+uRxJqkiiEA2lhgLHPiz/LcTSm432U04nvMErpIajAJK0dQazL6CL1LC8k3B/RLSV+WrlG6/OZwk5oS1rol4Zf7xsbNWYXsc3+t9DgcWH0eN03hOToXOAJZW8Gr9RW8T+MfL8g8A8j3kwf9BQDUbwmsmHk20vhwOjARUzvlRcZV55UzSwHlprrX32Qkg+hDvK19bZHQrEyEKZTK4kEZHjyF6E8T1Ib7lzGF/vLeHYunSucHSAlt99bmnmHTIOCzNkpLZBXU04WbXiK8aOXrYNGdoS6yVH/thF2WU/hrUY+BDwm5p6R7zqJzIOVN0cAoft/aUj0CBav9JEq1f7U0jJOKm5j5E2uITyjezywqIQznUPxNPKHGoJwJXGhKTQyznTx491Dvvev5b23yy13tFeDn5xVnkA23bgo7P/Oeb7YUU="
+
 services:
     - docker
+
+before_install:
+    - sudo apt-get update
+    - sudo apt-get install --yes jq
 
 before_script:
     - sudo make update-hosts
@@ -9,5 +16,5 @@ before_script:
     - sudo service docker restart
 
 script:
-    - make test
+    - make test && make release
 

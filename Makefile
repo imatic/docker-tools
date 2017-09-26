@@ -120,14 +120,20 @@ Description: builds docker images from git repo\n\
 	printf "#!/usr/bin/make -f\n\n\
 %%:\n\
 \tdh \$$@\n" > "build/deb/docker-tools-${VERSION}/debian/rules"
-	ronn --roff --pipe ./doc/build-image.md > "build/deb/docker-tools-${VERSION}/debian/build-image.1"
+	docker run --rm --volume $$(pwd):/tmp/src msoap/ruby-ronn ronn --roff --pipe /tmp/src/doc/build-image.md > "build/deb/docker-tools-${VERSION}/debian/build-image.1"
 	printf "debian/build-image.1\n" > "build/deb/docker-tools-${VERSION}/debian/docker-tools.manpages"
 
-# debian package
-build/deb/docker-tools-$(VERSION)-${RELEASE}_all.deb: build/docker-tools/deb
+.PHONY: debian-package
+
+debian-package: build/docker-tools/deb
 	docker run --volume "$$(pwd)":/tmp/src debian:stretch /bin/bash -c "\
 		apt-get update && \
 		apt-get install -y devscripts build-essential lintian ruby-ronn && \
 		cd /tmp/src/build/deb/docker-tools-${VERSION} && \
 		debuild -us -uc"
+
+.PHONY: release
+
+release:
+	./util/release
 
