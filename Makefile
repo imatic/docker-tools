@@ -108,7 +108,9 @@ Description: builds docker images from git repo\n\
  Cotains various scripts for working with docker:\n\
   - building docker images from git repo.\n" > "build/deb/docker-tools-${VERSION}/debian/control"
 	printf "10\n" > "build/deb/docker-tools-${VERSION}/debian/compat"
-	printf "bin/build-image bin\n" > "build/deb/docker-tools-${VERSION}/debian/install"
+	printf "bin/build-image bin\n\
+bin/docker-registry-request bin\n\
+bin/clear-docker-data bin\n" > "build/deb/docker-tools-${VERSION}/debian/install"
 	printf "3.0 (quilt)\n" > "build/deb/docker-tools-${VERSION}/debian/format"
 	printf "docker-tools (${VERSION}-${RELEASE}) unstable; urgency=low\n\
 \n\

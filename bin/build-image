@@ -17,62 +17,6 @@ REGISTRY_PW=${REGISTRY_PW:-'badmin'}
 tags=()
 original_ifs="${IFS}"
 
-tmp_file=/tmp/imatic__docker-tools__errors
-
-# Exits in case $tmp_file is not empty (contains errors)
-function show_error_and_exit {
-    if [[ -s "${tmp_file}" ]]; then
-        cat "${tmp_file}" >&2
-        exit 1
-    fi
-}
-
-# Makes authenticated GET request to registry
-#
-# args:
-#     $1 request_url (string)
-#     $2 fail_on_error (boolean,optional,default:false): If true - returns non zero value when request fails
-#         (can be because given image name does no exist in registry)
-function registry_request {
-    local requested_url="${1}"
-    local curl_options=()
-    if [[ ${2:-false} == true ]]; then
-        curl_options+=('--fail')
-    fi
-    local auth_params_string=$(curl --silent --show-error --include "${requested_url}" 2> "${tmp_file}" | grep --perl-regexp --only-matching --ignore-case '(?<=Www-Authenticate: Bearer )[^\r\n]*')
-    show_error_and_exit
-    local IFS=','
-    local auth_params_strings=(${auth_params_string})
-    local IFS="${original_ifs}"
-    local request_query_strings=()
-    local auth_url=''
-    for param_string in "${auth_params_strings[@]}"; do
-        local param_name="${param_string%%=*}"
-        local param_val="${param_string#*=\"}"
-        param_val="${param_val%\"}"
-
-        case "${param_name}" in
-            realm)
-                auth_url="${param_val}"
-                ;;
-            *)
-                request_query_strings+=("--data-urlencode" "${param_name}=${param_val}")
-                ;;
-        esac
-    done
-
-    local token=$(curl --get --silent --show-error --user "${REGISTRY_USER}:${REGISTRY_PW}" "${request_query_strings[@]}" "${auth_url}" 2> "${tmp_file}" | jq --raw-output '.token')
-    show_error_and_exit
-    curl_options+=('--silent' '--show-error' '--header' "Authorization: Bearer ${token}" "${requested_url}")
-    curl "${curl_options[@]}" 2> "${tmp_file}"
-    return_code="$?"
-    if [[ "${return_code}" -ne 22 ]]; then
-        show_error_and_exit
-    fi
-
-    return "${return_code}"
-}
-
 function append_git_tags {
     local IFS=$'\n'
     tags+=($(git tag --list --points-at HEAD))
@@ -94,7 +38,7 @@ if [[ ${#tags[@]} -eq 0 ]]; then
 fi
 
 # Removes tags which already exists in registry
-if registry_request "${REGISTRY_PROTOCOL}://${REGISTRY}/v2/${NAME}/tags/list" true; then
+if FAIL_ON_ERROR=true docker-registry-request "${REGISTRY_PROTOCOL}://${REGISTRY}/v2/${NAME}/tags/list"; then
     condition=''
     tags_json_string='['
     for tag in "${tags[@]}"; do
@@ -104,7 +48,7 @@ if registry_request "${REGISTRY_PROTOCOL}://${REGISTRY}/v2/${NAME}/tags/list" tr
     condition="${condition%' or'}"
     tags_json_string="${tags_json_string%','}]"
 
-    tags_string=$(registry_request "${REGISTRY_PROTOCOL}://${REGISTRY}/v2/${NAME}/tags/list" | jq --raw-output "${tags_json_string} - [.tags[] | select(${condition})] | .[]")
+    tags_string=$(docker-registry-request "${REGISTRY_PROTOCOL}://${REGISTRY}/v2/${NAME}/tags/list" | jq --raw-output "${tags_json_string} - [.tags[] | select(${condition})] | .[]")
     IFS=$'\n'
     tags=(${tags_string})
     IFS="${original_ifs}"

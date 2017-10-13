@@ -1,0 +1,75 @@
+#!/usr/bin/env bash
+#
+# Makes authenticated GET request to registry
+
+set -u
+
+REQUEST_URL="${1}"
+FAIL_ON_ERROR=${FAIL_ON_ERROR:-false}
+
+# user to authenticate agains registry
+REGISTRY_USER="${REGISTRY_USER:-admin}"
+REGISTRY_PW="${REGISTRY_PW:-badmin}"
+
+REQUEST_METHOD="${REQUEST_METHOD:-GET}"
+OBTAIN_DIGEST=${OBTAIN_DIGEST:-false}
+
+# Exits in case $tmp_file is not empty (contains errors)
+function show_error_and_exit {
+    if [[ -s "${tmp_file}" ]]; then
+        cat "${tmp_file}" >&2
+        exit 1
+    fi
+}
+
+original_ifs="${IFS}"
+tmp_file=/tmp/imatic__docker-tools__errors
+
+final_curl_options=()
+if [[ ${FAIL_ON_ERROR} == true ]]; then
+    final_curl_options+=('--fail')
+fi
+
+curl_options=()
+if [[ "${REQUEST_METHOD}" == "HEAD" ]]; then
+    curl_options+=('--head')
+else
+    curl_options+=('--request' "${REQUEST_METHOD}")
+fi
+if [[ "${OBTAIN_DIGEST}" == true ]]; then
+    curl_options+=('--header' 'Accept: application/vnd.docker.distribution.manifest.v2+json')
+fi
+
+auth_params_string=$(curl "${curl_options[@]}" --silent --show-error --include "${REQUEST_URL}" 2> "${tmp_file}" | grep --perl-regexp --only-matching --ignore-case '(?<=Www-Authenticate: Bearer )[^\r\n]*')
+show_error_and_exit
+IFS=','
+auth_params_strings=(${auth_params_string})
+IFS="${original_ifs}"
+request_query_strings=()
+auth_url=''
+for param_string in "${auth_params_strings[@]}"; do
+    param_name="${param_string%%=*}"
+    param_val="${param_string#*=\"}"
+    param_val="${param_val%\"}"
+
+    case "${param_name}" in
+        realm)
+            auth_url="${param_val}"
+            ;;
+        *)
+            request_query_strings+=("--data-urlencode" "${param_name}=${param_val}")
+            ;;
+    esac
+done
+
+token=$(curl --get --silent --show-error --user "${REGISTRY_USER}:${REGISTRY_PW}" "${request_query_strings[@]}" "${auth_url}" 2> "${tmp_file}" | jq --raw-output '.token')
+show_error_and_exit
+final_curl_options+=('--silent' '--show-error' '--header' "Authorization: Bearer ${token}" "${REQUEST_URL}")
+curl "${curl_options[@]}" "${final_curl_options[@]}" 2> "${tmp_file}"
+return_code="$?"
+if [[ "${return_code}" -ne 22 ]]; then
+    show_error_and_exit
+fi
+
+exit "${return_code}"
+
