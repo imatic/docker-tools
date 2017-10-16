@@ -45,6 +45,12 @@ show_error_and_exit
 IFS=','
 auth_params_strings=(${auth_params_string})
 IFS="${original_ifs}"
+
+if [[ ${#auth_params_strings[@]} -eq 0 ]]; then
+    printf "Cannot extract authentication information from request. Make sure that registry is running and '${REQUEST_URL}' is valid endpoint.\n" >&2
+    exit 1
+fi
+
 request_query_strings=()
 auth_url=''
 for param_string in "${auth_params_strings[@]}"; do
@@ -63,6 +69,12 @@ for param_string in "${auth_params_strings[@]}"; do
 done
 
 token=$(curl --get --silent --show-error --user "${REGISTRY_USER}:${REGISTRY_PW}" "${request_query_strings[@]}" "${auth_url}" 2> "${tmp_file}" | jq --raw-output '.token')
+
+if [[ -z "${token}" ]]; then
+    printf "Cannot retrieve token from '${auth_url}'. Make sure username and password is correct.\n" >&2
+    exit 1
+fi
+
 show_error_and_exit
 final_curl_options+=('--silent' '--show-error' '--header' "Authorization: Bearer ${token}" "${REQUEST_URL}")
 curl "${curl_options[@]}" "${final_curl_options[@]}" 2> "${tmp_file}"
