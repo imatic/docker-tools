@@ -6,4 +6,6 @@
 ## scripts
 
 - [build-image](doc/build-image.md) - builds docker images from git repo
+- [clear-docker-data](doc/clear-docker-data.md) - removes old data to save disk space
+- [docker-registry-request](doc/docker-registry-request.md) - easier working with authenticated registry
 

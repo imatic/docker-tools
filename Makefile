@@ -122,8 +122,11 @@ bin/clear-docker-data bin\n" > "build/deb/docker-tools-${VERSION}/debian/install
 	printf "#!/usr/bin/make -f\n\n\
 %%:\n\
 \tdh \$$@\n" > "build/deb/docker-tools-${VERSION}/debian/rules"
-	docker run --rm --volume $$(pwd):/tmp/src msoap/ruby-ronn ronn --roff --pipe /tmp/src/doc/build-image.md > "build/deb/docker-tools-${VERSION}/debian/build-image.1"
-	printf "debian/build-image.1\n" > "build/deb/docker-tools-${VERSION}/debian/docker-tools.manpages"
+	docker run --rm --volume $$(pwd):/tmp/src msoap/ruby-ronn ronn --roff /tmp/src/doc/*.md
+	mv /tmp/src/doc/*.1 "build/deb/docker-tools-${VERSION}/debian/"
+	printf "debian/build-image.1\n\
+debian/clear-docker-data.1\n\
+debian/docker-registry-request.1\n" > "build/deb/docker-tools-${VERSION}/debian/docker-tools.manpages"
 
 .PHONY: debian-package
 
@@ -138,4 +141,10 @@ debian-package: build/docker-tools/deb
 
 release:
 	./util/release
+
+.PHONY: debian-package-env
+
+# env for testing
+debian-package-env:
+	docker run --interactive --tty --volume "$$(pwd)":/tmp/src --volume /var/run/docker.sock:/var/run/docker.sock debian:stretch /bin/bash
 
