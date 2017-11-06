@@ -32,3 +32,6 @@ Note that only new tags are pushed into docker(1) registry (so if this script is
 - `REGISTRY_PW`
   Password of the **$REGISTRY_USER**
 
+- `DOCKERFILE_PATH`
+  Path to the **DOCKERFILE** (defaults to `./Dockerfile`)
+

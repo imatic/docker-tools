@@ -13,6 +13,7 @@ REGISTRY_PROTOCOL=${REGISTRY_PROTOCOL:-'https'}
 # user to authenticate agains registry
 REGISTRY_USER=${REGISTRY_USER:-'admin'}
 REGISTRY_PW=${REGISTRY_PW:-'badmin'}
+DOCKERFILE_PATH==${DOCKERFILE_PATH:-'./Dockerfile'}
 
 tags=()
 original_ifs="${IFS}"
@@ -65,7 +66,7 @@ for tag in "${tags[@]}"; do
     tag_args+=("--tag" "${REGISTRY}/${NAME}:${tag}")
 done
 
-docker build . "${tag_args[@]}"
+docker build . --file "${DOCKERFILE_PATH}" "${tag_args[@]}"
 docker login --username "${REGISTRY_USER}" --password "${REGISTRY_PW}" "${REGISTRY}"
 for tag in "${tags[@]}"; do
     docker push "${REGISTRY}/${NAME}:${tag}"
