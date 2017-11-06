@@ -13,7 +13,7 @@ REGISTRY_PROTOCOL=${REGISTRY_PROTOCOL:-'https'}
 # user to authenticate agains registry
 REGISTRY_USER=${REGISTRY_USER:-'admin'}
 REGISTRY_PW=${REGISTRY_PW:-'badmin'}
-DOCKERFILE_PATH==${DOCKERFILE_PATH:-'./Dockerfile'}
+DOCKERFILE_PATH=${DOCKERFILE_PATH:-'./Dockerfile'}
 
 tags=()
 original_ifs="${IFS}"
