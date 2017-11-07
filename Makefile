@@ -122,8 +122,8 @@ bin/clear-docker-data bin\n" > "build/deb/docker-tools-${VERSION}/debian/install
 	printf "#!/usr/bin/make -f\n\n\
 %%:\n\
 \tdh \$$@\n" > "build/deb/docker-tools-${VERSION}/debian/rules"
-	docker run --rm --volume $$(pwd):/tmp/src msoap/ruby-ronn ronn --roff /tmp/src/doc/*.md
-	mv /tmp/src/doc/*.1 "build/deb/docker-tools-${VERSION}/debian/"
+	docker run --rm --volume $$(pwd):/tmp/src msoap/ruby-ronn /bin/sh -c 'ronn --roff /tmp/src/doc/*.md'
+	mv ./doc/*.1 "build/deb/docker-tools-${VERSION}/debian/"
 	printf "debian/build-image.1\n\
 debian/clear-docker-data.1\n\
 debian/docker-registry-request.1\n" > "build/deb/docker-tools-${VERSION}/debian/docker-tools.manpages"
@@ -147,4 +147,21 @@ release:
 # env for testing
 debian-package-env:
 	docker run --interactive --tty --volume "$$(pwd)":/tmp/src --volume /var/run/docker.sock:/var/run/docker.sock debian:stretch /bin/bash
+
+.PHONY: debian-package-env-setup
+debian-package-env-setup:
+	apt-get update
+	apt-get install --yes \
+		apt-transport-https \
+		ca-certificates \
+		curl \
+		gnupg2 \
+		software-properties-common
+	curl -fsSL https://download.docker.com/linux/$$(. /etc/os-release; echo "$$ID")/gpg | apt-key add -
+	add-apt-repository \
+		"deb [arch=amd64] https://download.docker.com/linux/$$(. /etc/os-release; echo "$$ID") \
+		$$(lsb_release -cs) \
+		stable"
+	apt-get update
+	apt-get install docker-ce
 
