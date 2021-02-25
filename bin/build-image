@@ -67,7 +67,7 @@ for tag in "${tags[@]}"; do
     tag_args+=("--tag" "${REGISTRY}/${NAME}:${tag}")
 done
 
-docker build . "${BUILD_ARGS[@]}" --file "${DOCKERFILE_PATH}" "${tag_args[@]}"
+docker build ${BUILD_ARGS} --file "${DOCKERFILE_PATH}" "${tag_args[@]}" .
 docker login --username "${REGISTRY_USER}" --password "${REGISTRY_PW}" "${REGISTRY}"
 for tag in "${tags[@]}"; do
     docker push "${REGISTRY}/${NAME}:${tag}"
